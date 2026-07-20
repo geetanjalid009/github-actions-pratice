@@ -1,0 +1,26 @@
+name: CICD
+
+on:
+    workflow_dispatch:
+
+jobs:
+    code:
+        runs-on: ubantu-latest
+        steps:
+            - name: checkout code
+              run: echo "code clone from Github"
+    build:
+        runs-on: ubantu-latest
+        steps:
+            - name: build docker container
+              run: echo "docker container build"
+    test:
+        runs-on: ubantu-latest
+        steps: 
+            - name: test the container
+              run: echo "testing the container"
+    deploy:
+       runs-on: ubantu-latest
+       steps:
+            - name: Deploy the app
+              run: echo "Docker compose deployed the app"
