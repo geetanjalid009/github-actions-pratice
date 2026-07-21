@@ -2,25 +2,39 @@ name: CICD
 
 on:
     workflow_dispatch:
+        inputs: 
+            environment:
+                description: This is the envvironment where this workflow runs
+                default: 'dev'
+                required: true
+                type: choice
+                options: 
+                    - dev
+                    - prod
+                    - staging
 
 jobs:
     code:
-        runs-on: ubantu-latest
+        runs-on: ubuntu-latest
         steps:
             - name: checkout code
               run: echo "code clone from Github"
     build:
-        runs-on: ubantu-latest
+        needs: [code]
+        runs-on: ubuntu-latest
         steps:
             - name: build docker container
               run: echo "docker container build"
     test:
-        runs-on: ubantu-latest
+        needs: [build]
+        runs-on: ubuntu-latest
         steps: 
             - name: test the container
               run: echo "testing the container"
     deploy:
-       runs-on: ubantu-latest
-       steps:
-            - name: Deploy the app
+        if: inputs.environment == 'dev'
+        needs: [build,test]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Deploying the app
               run: echo "Docker compose deployed the app"
