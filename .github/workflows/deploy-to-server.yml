@@ -19,12 +19,12 @@ jobs:
                     mkdir -p devops
 
             - name: Copy the docker-compose file
-              uses: appleboy/ssh-action@v1.0.3
+              uses: appleboy/scp-action@v0.1.7
               with:
                 host: ${{ secrets.EC2_SSH_HOST }}
                 username: ${{ secrets.EC2_SSH_USERNAME }}
                 key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-                source: docker-compose.yml
+                source: "docker-compose.yml"
                 target: ~/devops
 
             - name: SSH to Prod Server & run the app
@@ -35,9 +35,16 @@ jobs:
                 key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
                 script: |
                     echo "Running App"
-                    sudo apt-get update && sudo apt-get install docker.io docker-compose-v2 -y
-                    sudo usermod -aG docker $USER && newgrp docker 
-                    export DOCKERHUB_USER=${{ vars.DOCKERHUB_USER }}
-                    export DOCKER_TAG= ${{ github.event.workflow_run.head_sha }}
-                    echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login -u ${{ secrets.DOCKERHUB_USER }} --password-stdin
-                    cd ~/devops && docker compose down && docker compose up -d --build --force-recreate --pull always
+
+                    sudo apt-get update
+                    sudo apt-get install -y docker.io docker-compose-plugin
+
+                    echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login \
+                        -u "${{ vars.DOCKERHUB_USERNAME }}" \
+                        --password-stdin
+
+                    cd ~/devops
+
+                    sudo docker compose pull
+                    sudo docker compose down
+                    sudo docker compose up -d
