@@ -1,50 +1,76 @@
-# thsi will deploy the safe / secure / tested app to Prod server
+# Deploy the secure/tested application to Production Server
+
 name: Deploy To Server
 
 on:
-    workflow_call:
+  workflow_call:
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest 
-        steps:
-            - name: SSH to Prod Server & create app folder
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_SSH_HOST }}
-                username: ${{ secrets.EC2_SSH_USERNAME }}
-                key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-                script: |
-                    echo "Starting Deployment"
-                    mkdir -p devops
+  deploy:
+    runs-on: ubuntu-latest
 
-            - name: Copy the docker-compose file
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_SSH_HOST }}
-                username: ${{ secrets.EC2_SSH_USERNAME }}
-                key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-                source: "docker-compose.yml"
-                target: "/home/ubuntu/devops"
+    steps:
+      # Checkout repository so GitHub runner has docker-compose.yml
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-            - name: SSH to Prod Server & run the app
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_SSH_HOST }}
-                username: ${{ secrets.EC2_SSH_USERNAME }}
-                key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-                script: |
-                    echo "Running App"
+      # Create application directory on EC2
+      - name: Create App Directory on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_SSH_HOST }}
+          username: ${{ secrets.EC2_SSH_USERNAME }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            echo "Creating application directory..."
+            mkdir -p ~/devops
 
-                    sudo apt-get update
-                    sudo apt-get install -y docker.io docker-compose
+      # Copy docker-compose.yml to EC2
+      - name: Copy docker-compose.yml
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_SSH_HOST }}
+          username: ${{ secrets.EC2_SSH_USERNAME }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          source: "docker-compose.yml"
+          target: "/home/ubuntu/devops"
 
-                    echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login \
-                        -u "${{ vars.DOCKERHUB_USERNAME }}" \
-                        --password-stdin
+      # Deploy the application
+      - name: Deploy Application
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_SSH_HOST }}
+          username: ${{ secrets.EC2_SSH_USERNAME }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            echo "Starting Deployment..."
 
-                    cd ~/devops
+            sudo apt-get update
+            sudo apt-get install -y docker.io docker-compose-v2
 
-                    sudo docker compose pull
-                    sudo docker compose down
-                    sudo docker compose up -d
+            sudo systemctl enable docker
+            sudo systemctl start docker
+
+            echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login \
+            -u "${{ vars.DOCKERHUB_USERNAME }}" \
+            --password-stdin
+
+            cd ~/devops
+
+            echo "Current Directory"
+            pwd
+
+            echo "Files:"
+            ls -la
+
+            echo "Compose File:"
+            cat docker-compose.yml
+
+            export DOCKERHUB_USERNAME=${{ vars.DOCKERHUB_USERNAME }}
+
+            sudo docker compose pull
+            sudo docker compose down || true
+            sudo docker compose up -d
+
+            echo "Running Containers"
+            sudo docker ps
