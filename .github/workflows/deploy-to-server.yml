@@ -25,7 +25,7 @@ jobs:
                 username: ${{ secrets.EC2_SSH_USERNAME }}
                 key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
                 source: "docker-compose.yml"
-                target: ~/devops
+                target: "/home/ubuntu/devops"
 
             - name: SSH to Prod Server & run the app
               uses: appleboy/ssh-action@v1.0.3
