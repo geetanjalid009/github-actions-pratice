@@ -6,7 +6,7 @@ on:
 
 jobs:
     deploy:
-        runs-on: ubuntu- latest 
+        runs-on: ubuntu-latest 
         steps:
             - name: SSH to Pro Server
               uses: appleboy/ssh-action@v1.0.3
