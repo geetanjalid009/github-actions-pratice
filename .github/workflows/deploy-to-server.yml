@@ -37,7 +37,7 @@ jobs:
                     echo "Running App"
 
                     sudo apt-get update
-                    sudo apt-get install -y docker.io docker-compose-plugin
+                    sudo apt-get install -y docker.io docker-compose
 
                     echo "${{ secrets.DOCKERHUB_TOKEN }}" | sudo docker login \
                         -u "${{ vars.DOCKERHUB_USERNAME }}" \
